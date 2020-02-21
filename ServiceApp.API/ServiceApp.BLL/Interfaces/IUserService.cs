@@ -9,7 +9,7 @@ namespace ServiceApp.BLL.Interfaces
     {
         Task<UserViewModel> Authenticate(string username, string password);
         Task<IEnumerable<UserViewModel>> GetAllUsers();
-        Task<RegisterUserVeiwModel> Register(RegisterUserVeiwModel model);
+        Task<UserViewModel> Register(RegisterUserVeiwModel model);
 
     }
 }

@@ -15,13 +15,16 @@ namespace ServiceApp.BLL.Services
     public class UserService : BaseService<Users, int>, IUserService
     {
         private readonly IRoleService _roleService;
+        private readonly IUserRoleService _userRoleService;
 
         public UserService(
             IRepository<Users, int> repository,
-                       IRoleService roleService
+                       IRoleService roleService,
+                   IUserRoleService userRoleService
             ) : base(repository)
         {
             _roleService = roleService;
+            _userRoleService = userRoleService;
         }
         public async Task<UserViewModel> Authenticate(string username, string password)
         {
@@ -34,14 +37,64 @@ namespace ServiceApp.BLL.Services
                     UserPassword = x.Password
 
                 }).FirstOrDefaultAsync();
+
             if (user == null)
             {
                 return null;
             }
 
             return user;
-
         }
+
+        public async Task<IEnumerable<UserViewModel>> GetAllUsers()
+        {
+            return await GetAll()
+                .Select(x => new UserViewModel
+                {
+                    Id = x.UserId,
+                    UserName = x.Name,
+                    UserPassword = null
+                }).ToListAsync();
+        }
+
+        public async Task<UserViewModel> Register(RegisterUserVeiwModel model)
+        {
+            var role = _roleService.GetAll(x => x.RoleName.Equals("user")).First();
+
+            try
+            {
+                var user = new Users
+                {
+                    Name = model.UserName,
+                    SurName = model.UserSurname,
+                    Password = model.UserPassword,
+                    UserEmail = model.UserEmail,
+                };
+                var data = await Create(user);
+
+                var userRole = new UsersRoles
+                {
+                    RolesId = role.RoleId,
+                    UsersId = data.UserId
+                };
+
+                await _userRoleService.Create(userRole);
+
+                var userView = new UserViewModel
+                {
+                    Id = data.UserId,
+                    UserName = data.Name,
+                    UserPassword = data.Password
+                };
+
+                return userView;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         private string GetHashString(string s)
         {
             byte[] bytes = Encoding.UTF8.GetBytes(s);
@@ -60,40 +113,5 @@ namespace ServiceApp.BLL.Services
             }
         }
 
-        public async Task<IEnumerable<UserViewModel>> GetAllUsers()
-        {
-            return await GetAll()
-                .Select(x => new UserViewModel
-                {
-                    Id = x.UserId,
-                    UserName = x.Name,
-                    UserPassword = null
-                }).ToListAsync();
-        }
-
-        public async Task<RegisterUserVeiwModel> Register(RegisterUserVeiwModel model)
-        {
-            var role = _roleService.GetAll(x => x.RoleName.Equals("user")).First();
-
-            try
-            {
-                var user = new Users
-                {
-                    Name = model.UserName,
-                    SurName = model.UserSurname,
-                    Password = model.UserPassword,
-                    UserEmail = model.UserEmail,
-                };
-                var data = await Create(user);
-
-                model.Id = data.UserId;
-
-                return model;
-            }
-            catch
-            {
-                return null;
-            }
-        }
     }
 }

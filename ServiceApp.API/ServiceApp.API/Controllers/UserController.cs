@@ -39,12 +39,25 @@ namespace ServiceApp.API.Controllers
 
 
         [AllowAnonymous]
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody]RegisterUserVeiwModel userParam)
+        {
+            var user = await _userService.Register(userParam);
+
+            if (user == null)
+                return BadRequest(new { message = "Username or password is incorrect" });
+
+            return Success(new UserTokenModel { User = user, Token = GetToken(user) });
+        }
+
+        [AllowAnonymous]
         [HttpGet("users")]
         public async Task<IActionResult> AllUsers()
         {
             var users = await _userService.GetAllUsers();
             return Success(users);
         }
+
         private string GetToken(UserViewModel user)
         {
             var JWTSecret = _configuration["ApplicationSettings:JWT_Secret"].ToString();
